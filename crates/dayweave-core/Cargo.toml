@@ -7,6 +7,15 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 
+[features]
+# Serves the RPC dispatcher over HTTP on localhost for browser-based UI testing.
+dev-bridge = []
+
+[[bin]]
+name = "dayweave-bridge"
+path = "src/bin/bridge.rs"
+required-features = ["dev-bridge"]
+
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
 rusqlite = { version = "0.41", features = ["bundled", "serde_json"] }

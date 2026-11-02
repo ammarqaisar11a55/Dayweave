@@ -1,0 +1,330 @@
+@import "tailwindcss";
+
+/* The design system is described in docs/DESIGN.md. */
+
+@theme {
+  --color-window: var(--window);
+  --color-sidebar: var(--sidebar);
+  --color-card: var(--card);
+  --color-elevated: var(--elevated);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: #e95420;
+  --color-accent-hover: #f16a35;
+  --color-accent-ink: #1f0a02;
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-violet: var(--violet);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  --text-page: 28px;
+  --text-page--line-height: 34px;
+  --text-page--letter-spacing: -0.02em;
+  --text-section: 17px;
+  --text-section--line-height: 24px;
+  --text-heading: 15px;
+  --text-heading--line-height: 22px;
+  --text-body: 14px;
+  --text-body--line-height: 20px;
+  --text-label: 13px;
+  --text-label--line-height: 18px;
+  --text-meta: 12px;
+  --text-meta--line-height: 16px;
+
+  --font-sans: "Inter Variable", system-ui, Ubuntu, sans-serif;
+
+  --ease-weave: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:root {
+  color-scheme: light;
+  --window: #f7f7f8;
+  --sidebar: #ffffff;
+  --card: #ffffff;
+  --elevated: #ffffff;
+  --sunken: #f1f1f3;
+  --control: #ececef;
+  --control-hover: #e3e3e7;
+  --hover: rgb(32 33 36 / 0.05);
+  --pressed: rgb(32 33 36 / 0.09);
+  --line: #e8e8ea;
+  --ink: #202124;
+  --ink-2: #6c6c72;
+  --ink-3: #a2a2a8;
+  --accent-text: #c2410f;
+  --accent-soft: #fdeee8;
+  --success: #1b7f54;
+  --warning: #8f6400;
+  --danger: #bf2f2b;
+  --info: #2267ae;
+  --violet: #6a49b8;
+  --overlay: rgb(20 20 22 / 0.28);
+  --shadow-float: 0 12px 32px rgb(20 20 22 / 0.14), 0 2px 6px rgb(20 20 22 / 0.06);
+
+  --thread-idle: #dcdce0;
+  --thread-ghost: #ececee;
+  --thread-warp: #f4996f;
+
+  --chart-task: #2267ae;
+  --chart-deadline: #c2410f;
+  --chart-habit: #1b7f54;
+  --chart-focus: #6a49b8;
+
+  --heat-0: #ececee;
+  --heat-1: #f9d2bf;
+  --heat-2: #f4a57e;
+  --heat-3: #ee7a48;
+  --heat-4: #d9480f;
+
+  --c-orange: #c9470f;
+  --c-red: #c53a3a;
+  --c-amber: #a06c00;
+  --c-green: #1b7f54;
+  --c-teal: #0f7d80;
+  --c-blue: #2267ae;
+  --c-violet: #6a49b8;
+  --c-pink: #b83b7e;
+  --c-slate: #5a6472;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --window: #171717;
+  --sidebar: #1d1d1d;
+  --card: #252525;
+  --elevated: #2b2b2b;
+  --sunken: #1f1f1f;
+  --control: #333333;
+  --control-hover: #3d3d3d;
+  --hover: rgb(245 245 245 / 0.06);
+  --pressed: rgb(245 245 245 / 0.1);
+  --line: #383838;
+  --ink: #f5f5f5;
+  --ink-2: #a5a5a5;
+  --ink-3: #737373;
+  --accent-text: #f4764a;
+  --accent-soft: #3a2519;
+  --success: #4cbb87;
+  --warning: #e5b23c;
+  --danger: #f0776f;
+  --info: #6faeeb;
+  --violet: #b19ae8;
+  --overlay: rgb(0 0 0 / 0.5);
+  --shadow-float: 0 12px 32px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
+
+  --thread-idle: #454545;
+  --thread-ghost: #262626;
+  --thread-warp: #a8481f;
+
+  --chart-task: #4a90d9;
+  --chart-deadline: #e8622f;
+  --chart-habit: #2fa56f;
+  --chart-focus: #9175dc;
+
+  --heat-0: #2b2b2b;
+  --heat-1: #5a3020;
+  --heat-2: #8f4322;
+  --heat-3: #c9531f;
+  --heat-4: #f4764a;
+
+  --c-orange: #f4764a;
+  --c-red: #f0776f;
+  --c-amber: #e5b23c;
+  --c-green: #4cbb87;
+  --c-teal: #4cc0c2;
+  --c-blue: #6faeeb;
+  --c-violet: #b19ae8;
+  --c-pink: #ef8fc0;
+  --c-slate: #9eaaba;
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* An application window never scrolls as a whole. Only regions inside it do. */
+  #root {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: var(--window);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 20px;
+    font-feature-settings: "cv11", "ss03";
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    cursor: default;
+  }
+
+  input,
+  textarea,
+  [data-selectable] {
+    user-select: text;
+    cursor: text;
+  }
+
+  button {
+    cursor: default;
+  }
+
+  :focus {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+}
+
+@layer components {
+  .surface {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+  }
+
+  /* Rows inside a grouped list share the surface and only separate by a hairline. */
+  .row-list > * + * {
+    box-shadow: inset 0 1px 0 var(--line);
+  }
+
+  .interactive:hover {
+    background: var(--hover);
+  }
+
+  .interactive:active {
+    background: var(--pressed);
+  }
+
+  .control {
+    background: var(--control);
+    color: var(--ink);
+  }
+
+  .control:hover {
+    background: var(--control-hover);
+  }
+
+  .float {
+    background: var(--elevated);
+    box-shadow: var(--shadow-float);
+    outline: 1px solid var(--line);
+    outline-offset: -1px;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Motion: every transition answers something the person did. See docs/DESIGN.md. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+@keyframes check-pop {
+  40% {
+    transform: scale(1.14);
+  }
+}
+
+@keyframes settle {
+  from {
+    opacity: 0.4;
+  }
+}
+
+.animate-page {
+  animation: page-in 180ms var(--ease-weave);
+}
+
+.animate-fade {
+  animation: fade-in 140ms var(--ease-weave);
+}
+
+.animate-rise {
+  animation: rise-in 180ms var(--ease-weave);
+}
+
+.animate-panel {
+  animation: panel-in 200ms var(--ease-weave);
+}
+
+.animate-check {
+  animation: check-pop 220ms var(--ease-weave);
+}
+
+.animate-settle {
+  animation: settle 220ms var(--ease-weave);
+}
+
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

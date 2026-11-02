@@ -6,3 +6,4 @@ pub mod error;
 pub mod recurrence;
 pub mod settings;
 pub mod streaks;
+pub mod tasks;

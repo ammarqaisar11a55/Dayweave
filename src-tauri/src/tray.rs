@@ -13,13 +13,13 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let separator = PredefinedMenuItem::separator(app)?;
     let menu = Menu::with_items(app, &[&open, &separator, &new_task, &new_habit, &focus, &separator, &quit])?;
 
-    let mut tray = TrayIconBuilder::with_id("main")
-        .tooltip("Dayweave")
-        .menu(&menu)
-        .on_menu_event(|app, event| match event.id.as_ref() {
-            "open" => show_window(app),
-            "quit" => app.exit(0),
-            action => perform(app, action),
+    let mut tray =
+        TrayIconBuilder::with_id("main").tooltip("Dayweave").menu(&menu).on_menu_event(|app, event| {
+            match event.id.as_ref() {
+                "open" => show_window(app),
+                "quit" => app.exit(0),
+                action => perform(app, action),
+            }
         });
     if let Some(icon) = app.default_window_icon() {
         tray = tray.icon(icon.clone());

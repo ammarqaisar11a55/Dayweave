@@ -59,5 +59,6 @@ jobs:
       - run: npm ci
       - run: npx vite build
       - run: cargo clippy -p dayweave --all-targets -- -D warnings
+      - run: cargo test -p dayweave
       - name: Production build
         run: npm run tauri build -- --bundles deb

@@ -101,6 +101,38 @@ fn exporting_over_an_existing_file_replaces_it() {
 }
 
 #[test]
+fn exports_work_when_nothing_can_be_created_beside_the_chosen_file() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = tempfile::tempdir().unwrap();
+    let app = App::new();
+    populate(&app);
+    let names = ["backup.json", "backup.db", "tasks.csv", "habits.csv"];
+    for name in names {
+        fs::write(file(&dir, name), "").unwrap();
+    }
+    // This is how a file granted by a desktop portal behaves: writable, in a closed directory.
+    fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o555)).unwrap();
+
+    let methods =
+        ["backup.exportJson", "backup.exportDatabase", "backup.exportTasksCsv", "backup.exportHabitsCsv"];
+    for (method, name) in methods.into_iter().zip(names) {
+        app.call(method, path_param(&file(&dir, name)));
+    }
+    let sizes: Vec<u64> = names.map(|name| fs::metadata(file(&dir, name)).unwrap().len()).to_vec();
+    let leftovers = fs::read_dir(dir.path()).unwrap().count();
+    let fresh = App::new();
+    let json = fresh.call("backup.preview", path_param(&file(&dir, "backup.json")));
+    let database = fresh.call("backup.preview", path_param(&file(&dir, "backup.db")));
+    fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o755)).unwrap();
+
+    assert!(sizes.iter().all(|size| *size > 0), "{sizes:?}");
+    assert_eq!(leftovers, names.len());
+    assert_eq!(json["incoming"]["tasks"], 1);
+    assert_eq!(database["incoming"]["tasks"], 1);
+}
+
+#[test]
 fn a_preview_describes_the_file_and_changes_nothing() {
     let dir = tempfile::tempdir().unwrap();
     let path = file(&dir, "backup.json");

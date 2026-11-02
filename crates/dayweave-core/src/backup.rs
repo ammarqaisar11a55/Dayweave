@@ -4,6 +4,7 @@
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use rusqlite::types::{Value as SqlValue, ValueRef};
 use rusqlite::{params_from_iter, Connection};
@@ -173,7 +174,16 @@ fn validated(document: &Document) -> Result<Connection> {
 fn read_document(path: &Path, clock: &dyn Clock) -> Result<(Document, &'static str)> {
     let bytes = fs::read(path)?;
     if bytes.starts_with(b"SQLite format 3\0") {
-        return Ok((read_sqlite(path, clock)?, "database"));
+        // Read from a private copy: SQLite may need side files, which a chosen file can't have.
+        let staged = staging_path("restore");
+        fs::write(&staged, &bytes)?;
+        let document = read_sqlite(&staged, clock);
+        for suffix in ["", "-wal", "-shm"] {
+            let mut side = staged.clone().into_os_string();
+            side.push(suffix);
+            let _ = fs::remove_file(side);
+        }
+        return Ok((document?, "database"));
     }
     let document =
         serde_json::from_slice(&bytes).map_err(|_| Error::invalid("This file is not a Dayweave backup"))?;
@@ -202,9 +212,25 @@ pub fn export_json(conn: &Connection, clock: &dyn Clock, path: &Path) -> Result<
 pub fn export_database(conn: &Connection, path: &Path) -> Result<()> {
     let temporary = sibling(path, "tmp");
     let _ = fs::remove_file(&temporary);
-    conn.execute("VACUUM INTO ?1", [temporary.to_string_lossy()])?;
-    fs::rename(&temporary, path)?;
+    if conn.execute("VACUUM INTO ?1", [temporary.to_string_lossy()]).is_ok() {
+        fs::rename(&temporary, path)?;
+        return Ok(());
+    }
+    // A file chosen through a desktop portal can be written, but nothing can be created beside it.
+    let _ = fs::remove_file(&temporary);
+    let staged = staging_path("export");
+    let _ = fs::remove_file(&staged);
+    conn.execute("VACUUM INTO ?1", [staged.to_string_lossy()])?;
+    let copied = fs::copy(&staged, path);
+    let _ = fs::remove_file(&staged);
+    copied?;
     Ok(())
+}
+
+fn staging_path(purpose: &str) -> PathBuf {
+    static NEXT: AtomicU32 = AtomicU32::new(0);
+    let unique = NEXT.fetch_add(1, Ordering::Relaxed);
+    std::env::temp_dir().join(format!("dayweave-{purpose}-{}-{unique}.db", std::process::id()))
 }
 
 fn sibling(path: &Path, suffix: &str) -> PathBuf {
@@ -216,7 +242,11 @@ fn sibling(path: &Path, suffix: &str) -> PathBuf {
 /// Writes through a temporary file, so a failure can't leave a half-written backup at `path`.
 fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     let temporary = sibling(path, "tmp");
-    fs::write(&temporary, bytes)?;
+    if fs::write(&temporary, bytes).is_err() {
+        // Nothing can be created beside a file chosen through a desktop portal.
+        let _ = fs::remove_file(&temporary);
+        return Ok(fs::write(path, bytes)?);
+    }
     fs::rename(&temporary, path)?;
     Ok(())
 }

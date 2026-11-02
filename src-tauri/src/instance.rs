@@ -50,3 +50,28 @@ pub fn listen(listener: UnixListener, handle: impl Fn(&str) + Send + 'static) {
         }
     });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    #[test]
+    fn a_second_copy_hands_its_message_to_the_first() {
+        let directory = std::env::temp_dir().join(format!("dayweave-instance-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        std::env::set_var("XDG_RUNTIME_DIR", &directory);
+
+        // A file left by a crashed copy must not stop the next one.
+        drop(UnixListener::bind(socket_path()).unwrap());
+        let Instance::Primary(listener) = acquire("show") else { panic!("should become the running copy") };
+
+        let (sender, receiver) = mpsc::channel();
+        listen(listener, move |message| sender.send(message.to_string()).unwrap());
+        assert!(matches!(acquire("new-task"), Instance::Forwarded));
+        assert_eq!(receiver.recv_timeout(Duration::from_secs(5)).unwrap(), "new-task");
+
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+}

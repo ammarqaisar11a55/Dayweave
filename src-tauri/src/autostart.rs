@@ -54,3 +54,31 @@ pub fn set(enabled: bool) -> io::Result<()> {
         ),
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_entry_is_written_and_removed_and_starts_in_the_background() {
+        let directory = std::env::temp_dir().join(format!("dayweave-autostart-{}", std::process::id()));
+        std::env::set_var("XDG_CONFIG_HOME", &directory);
+        let entry = directory.join("autostart").join(FILE);
+
+        set(true).unwrap();
+        let text = fs::read_to_string(&entry).unwrap();
+        assert!(text.lines().any(|line| line.starts_with("Exec=") && line.ends_with(" --background")));
+
+        set(false).unwrap();
+        assert!(!entry.exists());
+        set(false).expect("turning it off twice is harmless");
+
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn a_path_with_spaces_is_quoted() {
+        assert_eq!(quoted("/usr/bin/dayweave"), "/usr/bin/dayweave");
+        assert_eq!(quoted("/home/a b/Dayweave.AppImage"), "\"/home/a b/Dayweave.AppImage\"");
+    }
+}

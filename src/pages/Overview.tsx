@@ -59,7 +59,7 @@ function Hero({ data }: { data: Data }) {
               {data.habitsDone} of {plural(data.habitsTotal, "habit")}
             </dd>
           </div>
-          {data.focusSeconds > 0 && (
+          {data.focusSeconds >= 60 && (
             <div>
               <dt className="sr-only">Focus</dt>
               <dd className="tabular">{formatDuration(data.focusSeconds)} focused</dd>

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 
 import { addDays, formatShortDate, parseDate, startOfWeek, today } from "../../lib/date";
 import { plural } from "../../lib/format";
@@ -50,10 +50,16 @@ export function Heatmap({ habitId }: { habitId: number | null }) {
     return { weeks, months, total: days.reduce((sum, day) => sum + day.done, 0) };
   }, [data]);
 
+  // When the year doesn't fit, the most recent weeks are the ones to show.
+  const scroller = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (scroller.current) scroller.current.scrollLeft = scroller.current.scrollWidth;
+  }, [weeks.length]);
+
   const width = weeks.length * STEP;
   return (
     <div>
-      <div className="overflow-x-auto pb-1">
+      <div ref={scroller} className="overflow-x-auto pb-1">
         <svg
           role="img"
           aria-label={`Habit activity over the last year: ${plural(total, "completion")}`}

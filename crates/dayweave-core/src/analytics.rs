@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::clock::{format_date, parse_date, Clock};
 use crate::error::{Error, Result};
-use crate::habits::{self, HeatmapParams, ListParams};
+use crate::habits::{self, HeatmapDay, HeatmapParams, ListParams};
 use crate::overview::week_of;
 use crate::settings;
 use crate::streaks::StreakUnit;
@@ -146,7 +146,7 @@ pub fn get(conn: &Connection, clock: &dyn Clock, params: Params) -> Result<Analy
                 date: day.date.clone(),
                 tasks_completed: completed.get(&day.date).map_or(0, |value| value.0),
                 tasks_created: created.get(&day.date).copied().unwrap_or(0),
-                habit_rate: (day.due > 0).then(|| f64::from(day.done) / f64::from(day.due)),
+                habit_rate: settled_rate(day),
                 habits_done: day.done,
                 focus_seconds,
                 focus_sessions,
@@ -168,7 +168,7 @@ pub fn get(conn: &Connection, clock: &dyn Clock, params: Params) -> Result<Analy
     let task_completion_rate = if settled == 0 { 0.0 } else { tasks_completed as f64 / settled as f64 };
 
     let (habit_done, habit_due) =
-        heat.iter().fold((0u32, 0u32), |(done, due), day| (done + day.done, due + day.due));
+        heat.iter().fold((0u32, 0u32), |(done, due), day| (done + day.done, due + day.due - day.pending));
     let habit_completion_rate =
         if habit_due == 0 { 0.0 } else { f64::from(habit_done) / f64::from(habit_due) };
 
@@ -201,6 +201,13 @@ pub fn get(conn: &Connection, clock: &dyn Clock, params: Params) -> Result<Analy
         most_consistent,
         needs_improvement,
     })
+}
+
+/// The share of habits met on a day, leaving out any still open today: an unfinished day hasn't
+/// failed, the same rule the streak engine follows.
+fn settled_rate(day: &HeatmapDay) -> Option<f64> {
+    let settled = day.due - day.pending;
+    (settled > 0).then(|| f64::from(day.done) / f64::from(settled))
 }
 
 fn weekly_points(conn: &Connection, daily: &[DayPoint]) -> Result<Vec<WeekPoint>> {

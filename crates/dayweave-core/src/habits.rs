@@ -609,7 +609,18 @@ pub struct HeatmapDay {
     pub level: u8,
     pub done: u32,
     pub due: u32,
+    /// Due today and still open. These are undecided, so rates leave them out.
+    pub pending: u32,
     pub missed: bool,
+}
+
+#[derive(Clone, Copy, Default)]
+struct DayTotal {
+    score: f64,
+    done: u32,
+    due: u32,
+    pending: u32,
+    missed: u32,
 }
 
 fn level_for(ratio: f64) -> u8 {
@@ -633,7 +644,7 @@ pub fn heatmap(conn: &Connection, clock: &dyn Clock, params: HeatmapParams) -> R
     let bases: Vec<Base> =
         conn.prepare(&sql)?.query_map([params.id], map_base)?.collect::<rusqlite::Result<_>>()?;
 
-    let mut totals: HashMap<NaiveDate, (f64, u32, u32, u32)> = HashMap::new();
+    let mut totals: HashMap<NaiveDate, DayTotal> = HashMap::new();
     for base in &bases {
         let weekdays = load_weekdays(conn, base.id)?;
         let spec = spec_of(conn, base, &weekdays)?;
@@ -644,21 +655,22 @@ pub fn heatmap(conn: &Connection, clock: &dyn Clock, params: HeatmapParams) -> R
             let total = totals.entry(date).or_default();
             match engine.state(date) {
                 DayState::Done => {
-                    total.0 += 1.0;
-                    total.1 += 1;
-                    total.2 += 1;
+                    total.score += 1.0;
+                    total.done += 1;
+                    total.due += 1;
                 }
                 DayState::Partial => {
-                    total.0 += progress(base, log.get(&date));
-                    total.2 += 1;
+                    total.score += progress(base, log.get(&date));
+                    total.due += 1;
                 }
                 DayState::Pending => {
-                    total.0 += log.get(&date).map_or(0.0, |row| progress(base, Some(row)));
-                    total.2 += 1;
+                    total.score += log.get(&date).map_or(0.0, |row| progress(base, Some(row)));
+                    total.due += 1;
+                    total.pending += 1;
                 }
                 DayState::Missed => {
-                    total.2 += 1;
-                    total.3 += 1;
+                    total.due += 1;
+                    total.missed += 1;
                 }
                 DayState::Inactive | DayState::NotScheduled => {}
             }
@@ -669,13 +681,14 @@ pub fn heatmap(conn: &Connection, clock: &dyn Clock, params: HeatmapParams) -> R
         .iter_days()
         .take_while(|date| *date <= to)
         .map(|date| {
-            let (score, done, due, missed) = totals.get(&date).copied().unwrap_or_default();
+            let total = totals.get(&date).copied().unwrap_or_default();
             HeatmapDay {
                 date: format_date(date),
-                level: level_for(if due == 0 { 0.0 } else { score / f64::from(due) }),
-                done,
-                due,
-                missed: missed > 0 && score <= 0.0,
+                level: level_for(if total.due == 0 { 0.0 } else { total.score / f64::from(total.due) }),
+                done: total.done,
+                due: total.due,
+                pending: total.pending,
+                missed: total.missed > 0 && total.score <= 0.0,
             }
         })
         .collect())
@@ -716,7 +729,14 @@ pub fn day_states(conn: &Connection, clock: &dyn Clock, dates: &[NaiveDate]) -> 
             name: base.name,
             color: base.color,
             states: dates.iter().map(|date| engine.state(*date)).collect(),
-            due: dates.iter().map(|date| *date >= spec.start && engine.is_due(*date)).collect(),
+            // A weekly target can fall on any day, so no particular future date is due.
+            due: dates
+                .iter()
+                .map(|date| {
+                    let fixed = matches!(spec.schedule, Schedule::Days(_));
+                    *date >= spec.start && engine.is_due(*date) && (fixed || *date <= today)
+                })
+                .collect(),
         });
     }
     Ok(result)

@@ -74,9 +74,10 @@ fn week(conn: &Connection, clock: &dyn Clock) -> Result<Vec<WeekDay>> {
             )?;
             let (mut habits_done, mut habits_due) = (0, 0);
             for habit in &states {
-                if habit.due[index] && habit.states[index] != DayState::Inactive {
+                let state = habit.states[index];
+                if habit.due[index] && state != DayState::Inactive && state != DayState::NotScheduled {
                     habits_due += 1;
-                    if habit.states[index] == DayState::Done {
+                    if state == DayState::Done {
                         habits_done += 1;
                     }
                 }

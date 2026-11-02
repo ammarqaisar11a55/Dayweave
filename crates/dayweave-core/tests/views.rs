@@ -167,6 +167,44 @@ fn analytics_summarise_tasks_habits_and_focus() {
 }
 
 #[test]
+fn a_weekly_target_is_not_due_on_any_particular_future_day() {
+    let app = App::new();
+    app.habit("Run", json!({ "frequency": "weekly_target", "weeklyTarget": 3 }));
+    app.habit("Gym", json!({ "frequency": "weekdays", "weekdays": [2] }));
+    let days = app.call("calendar.range", json!({ "from": "2026-11-02", "to": "2026-11-05" }));
+    assert_eq!(day(&days, "2026-11-02")["habitsDue"], 1, "today the target is still open");
+    assert_eq!(day(&days, "2026-11-03")["habitsDue"], 0);
+    assert_eq!(day(&days, "2026-11-04")["habitsDue"], 1, "a fixed schedule still shows ahead");
+}
+
+#[test]
+fn a_past_day_without_a_weekly_target_completion_is_not_counted_as_due() {
+    let app = App::new();
+    app.habit("Run", json!({ "frequency": "weekly_target", "weeklyTarget": 3 }));
+    app.set("2026-11-04T10:00");
+    let week = &app.call("overview.get", json!({}))["week"];
+    assert_eq!(week[0]["habitsDue"], 0);
+    assert_eq!(week[2]["habitsDue"], 1, "today the target is still open");
+}
+
+#[test]
+fn an_unfinished_today_does_not_lower_habit_consistency() {
+    let app = App::new();
+    let first = app.habit("First", json!({ "startDate": "2026-11-01" }));
+    let second = app.habit("Second", json!({ "startDate": "2026-11-01" }));
+    app.call("habits.log", json!({ "id": first["id"], "date": "2026-11-01" }));
+    app.call("habits.log", json!({ "id": second["id"], "date": "2026-11-01" }));
+
+    let stats = app.call("analytics.get", json!({ "days": 2 }));
+    assert_eq!(stats["habitCompletionRate"], 1.0, "yesterday was perfect and today isn't over");
+    assert!(stats["daily"][1]["habitRate"].is_null());
+
+    app.call("habits.log", json!({ "id": first["id"] }));
+    let stats = app.call("analytics.get", json!({ "days": 2 }));
+    assert_eq!(stats["daily"][1]["habitRate"], 1.0);
+}
+
+#[test]
 fn analytics_handle_an_empty_database() {
     let app = App::new();
     let stats = app.call("analytics.get", json!({ "days": 30 }));

@@ -3,6 +3,7 @@
 pub mod clock;
 pub mod db;
 pub mod error;
+pub mod habits;
 pub mod projects;
 pub mod recurrence;
 pub mod settings;

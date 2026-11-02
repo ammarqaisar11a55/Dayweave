@@ -149,6 +149,8 @@ function BarPlot({
   unit: (value: number) => string;
 }) {
   const stacked = series.length > 1;
+  // On long ranges the bars are too thin for a separating gap, which would hide the smaller segment.
+  const separated = stacked && data.length <= 45;
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 4, right: 0, bottom: 0, left: 0 }} barCategoryGap="28%">
@@ -165,8 +167,8 @@ function BarPlot({
             stackId={stacked ? "total" : undefined}
             maxBarSize={22}
             radius={!stacked || index === series.length - 1 ? [4, 4, 0, 0] : 0}
-            stroke={stacked ? "var(--card)" : undefined}
-            strokeWidth={stacked ? 1 : 0}
+            stroke={separated ? "var(--card)" : undefined}
+            strokeWidth={separated ? 1 : 0}
             isAnimationActive={false}
           />
         ))}
@@ -285,7 +287,7 @@ export function Analytics() {
                 <LineChart data={habitWeeks} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                   <CartesianGrid vertical={false} stroke="var(--line)" />
                   <XAxis dataKey="week" tickFormatter={tickDate} tick={AXIS} axisLine={{ stroke: "var(--line)" }} tickLine={false} minTickGap={32} />
-                  <YAxis domain={[0, 100]} ticks={[0, 50, 100]} tickFormatter={(value: number) => `${value}%`} tick={AXIS} axisLine={false} tickLine={false} width={34} />
+                  <YAxis domain={[0, 100]} ticks={[0, 50, 100]} tickFormatter={(value: number) => `${value}%`} tick={AXIS} axisLine={false} tickLine={false} width={40} />
                   <Tooltip content={<ChartTooltip unit={(value) => `${value}%`} />} cursor={{ stroke: "var(--ink-3)" }} />
                   <Line type="monotone" dataKey="rate" name="Met" stroke="var(--chart-habit)" strokeWidth={2} dot={{ r: 3, fill: "var(--chart-habit)", stroke: "var(--card)", strokeWidth: 2 }} activeDot={{ r: 5 }} isAnimationActive={false} />
                 </LineChart>

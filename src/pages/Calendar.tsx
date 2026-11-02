@@ -59,7 +59,7 @@ function Chip({ item, showTime }: { item: CalendarItem; showTime: boolean }) {
         openItem(item);
       }}
       title={`${label}: ${item.title}`}
-      className={`interactive flex h-[22px] w-full min-w-0 items-center gap-1.5 rounded-[6px] px-1 text-left text-meta ${item.completed ? "text-ink-2 line-through" : item.overdue ? "text-danger" : "text-ink"}`}
+      className={`interactive flex h-[22px] w-full min-w-0 items-center gap-1.5 rounded-[6px] px-1 text-left text-meta ${item.completed && item.kind !== "focus" ? "text-ink-2 line-through" : item.overdue ? "text-danger" : "text-ink"}`}
     >
       <Icon size={12} aria-hidden style={{ color }} className="shrink-0" />
       <span className="sr-only">{label}:</span>
@@ -93,14 +93,26 @@ function useDrop(date: string) {
 
 const MONTH_LIMIT = 3;
 
-function HabitTally({ day }: { day: CalendarDay }) {
-  if (!day.habitsDue) return null;
+/** Habits and focus time as small counts, so they can't crowd out the day's deadlines. */
+function DayTally({ day }: { day: CalendarDay }) {
   const complete = day.habitsDone >= day.habitsDue;
+  const minutes = Math.round(day.focusSeconds / 60);
   return (
-    <span className={`tabular inline-flex items-center gap-0.5 text-meta ${complete ? "text-success" : "text-ink-2"}`}>
-      {complete ? <Check size={11} aria-hidden /> : <Repeat2 size={11} aria-hidden />}
-      <span className="sr-only">Habits done:</span>
-      {day.habitsDone}/{day.habitsDue}
+    <span className="tabular flex min-w-0 items-center gap-1.5 text-meta text-ink-2">
+      {minutes > 0 && (
+        <span className="inline-flex items-center gap-0.5">
+          <Timer size={11} aria-hidden style={{ color: KINDS.focus.color }} />
+          <span className="sr-only">Minutes focused:</span>
+          {minutes}
+        </span>
+      )}
+      {day.habitsDue > 0 && (
+        <span className={`inline-flex items-center gap-0.5 ${complete ? "text-success" : ""}`}>
+          {complete ? <Check size={11} aria-hidden /> : <Repeat2 size={11} aria-hidden />}
+          <span className="sr-only">Habits done:</span>
+          {day.habitsDone}/{day.habitsDue}
+        </span>
+      )}
     </span>
   );
 }
@@ -121,8 +133,7 @@ function CalendarCell({
   const { over, handlers } = useDrop(date);
   const isToday = date === today();
   const outside = parseDate(date).getMonth() !== month;
-  // Habits are summarised as a count so they can't crowd out the day's deadlines.
-  const items = day?.items.filter((item) => item.kind !== "habit" && item.kind !== "reminder") ?? [];
+  const items = day?.items.filter((item) => item.kind === "deadline" || item.kind === "task") ?? [];
   const hidden = items.length - MONTH_LIMIT;
   return (
     <div
@@ -142,7 +153,7 @@ function CalendarCell({
         >
           {parseDate(date).getDate()}
         </button>
-        {day && date <= today() && <HabitTally day={day} />}
+        {day && date <= today() && <DayTally day={day} />}
       </div>
       {items.slice(0, MONTH_LIMIT).map((item, index) => (
         <Chip key={`${item.kind}-${item.id}-${index}`} item={item} showTime={false} />
@@ -244,7 +255,7 @@ function Agenda({ date, day, wide = false }: { date: string; day: CalendarDay | 
                       onClick={() => openItem(item)}
                       className="interactive flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-body"
                     >
-                      <span className={`min-w-0 flex-1 truncate ${item.completed ? "text-ink-2 line-through" : item.overdue ? "text-danger" : ""}`}>{item.title}</span>
+                      <span className={`min-w-0 flex-1 truncate ${item.completed && kind !== "focus" ? "text-ink-2 line-through" : item.overdue ? "text-danger" : ""}`}>{item.title}</span>
                       {item.overdue && kind !== "habit" && <span className="text-meta text-danger">Overdue</span>}
                       {item.overdue && kind === "habit" && <span className="text-meta text-danger">Missed</span>}
                       {item.seconds !== null && <span className="tabular text-meta text-ink-2">{formatDuration(item.seconds)}</span>}

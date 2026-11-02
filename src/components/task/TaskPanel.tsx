@@ -261,7 +261,7 @@ export function TaskPanel({ id }: { id: number }) {
   return (
     <aside
       aria-label="Task details"
-      className="animate-panel z-20 flex h-full w-[420px] shrink-0 flex-col border-l border-line bg-sidebar [--sunken:var(--control)] max-[1180px]:absolute max-[1180px]:right-0 max-[1180px]:top-0 max-[1180px]:shadow-[var(--shadow-float)]"
+      className="animate-panel z-20 flex h-full w-[420px] shrink-0 flex-col border-l border-line bg-sidebar [--color-sunken:var(--control)] max-[1180px]:absolute max-[1180px]:right-0 max-[1180px]:top-0 max-[1180px]:shadow-[var(--shadow-float)]"
     >
       <div className="flex items-center justify-between px-5 pb-1 pt-3">
         <span className="text-label font-medium text-ink-2">Task details</span>

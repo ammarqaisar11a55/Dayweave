@@ -64,6 +64,12 @@ impl Core {
         reminders::tick(&self.lock(), self.clock.as_ref())
     }
 
+    /// Seconds until the running focus session ends, so the scheduler can wake exactly then.
+    pub fn focus_remaining(&self) -> Result<Option<i64>> {
+        let session = focus::current(&self.lock(), self.clock.as_ref())?;
+        Ok(session.filter(|session| session.status == "running").map(|session| session.remaining_seconds))
+    }
+
     pub fn setting_bool(&self, key: &str) -> Result<bool> {
         settings::get_bool(&self.lock(), key)
     }

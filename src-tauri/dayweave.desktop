@@ -1,0 +1,24 @@
+[Desktop Entry]
+Categories={{categories}}
+Comment={{comment}}
+Exec={{exec}}
+Icon={{icon}}
+Name={{name}}
+Keywords=tasks;habits;deadlines;calendar;focus;pomodoro;productivity;
+StartupWMClass=dayweave
+StartupNotify=true
+Terminal=false
+Type=Application
+Actions=new-task;new-habit;start-focus;
+
+[Desktop Action new-task]
+Name=New task
+Exec={{exec}} --new-task
+
+[Desktop Action new-habit]
+Name=New habit
+Exec={{exec}} --new-habit
+
+[Desktop Action start-focus]
+Name=Start focus session
+Exec={{exec}} --start-focus

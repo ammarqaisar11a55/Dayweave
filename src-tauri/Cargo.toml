@@ -1,0 +1,22 @@
+[package]
+name = "dayweave"
+description = "Build better days, one habit at a time"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lib]
+name = "dayweave_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+dayweave-core = { path = "../crates/dayweave-core" }
+notify-rust = "4"
+serde_json = "1"
+tauri = { version = "2", features = ["image-png", "tray-icon"] }
+tauri-plugin-dialog = "2"

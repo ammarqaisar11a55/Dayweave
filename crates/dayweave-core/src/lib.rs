@@ -3,3 +3,4 @@
 pub mod clock;
 pub mod error;
 pub mod recurrence;
+pub mod streaks;

@@ -55,7 +55,7 @@ Access is local and synchronous, and there is one writer. SQLx would add an asyn
 connection pool to solve problems this application does not have. `rusqlite` with the `bundled`
 feature also fixes the SQLite version, so behaviour does not depend on what the snap base ships.
 
-A single connection sits behind a mutex. Queries take well under a millisecond at this data size, so
+One connection sits behind a mutex. Queries take well under a millisecond at this data size, so
 a pool would add complexity without measurable benefit.
 
 ### Time: floating local dates, resolved at the last moment
@@ -108,6 +108,13 @@ For reminders from the moment you sign in, Settings can add an autostart entry t
 in the background. A separate daemon was rejected: snap services run as root unless user daemons are
 used, a second process would need its own access to the database, and it would add a failure mode to
 solve something autostart already solves.
+
+### The snap has neither `network` nor `home`
+
+Dayweave needs neither. The GNOME extension sets `GTK_USE_PORTAL=1`, so the file dialog runs outside
+the sandbox and grants access to only the file you choose. A portal grant covers that one file, so
+nothing can be created beside it. Exports fall back to writing it directly, and a database backup
+is read from a private copy because SQLite may need side files.
 
 ### Single instance through a Unix socket
 
@@ -193,8 +200,8 @@ habits ───┘    │ │ └─< task_subtasks (self-nesting)
 app_settings        notification_log
 ```
 
-The schema is in `crates/dayweave-core/src/migrations`. Migrations run in a transaction, are numbered
-through `PRAGMA user_version`, and are tested by upgrading a database from every earlier version.
+The schema is in `crates/dayweave-core/src/migrations`. Each migration runs in its own transaction
+and is numbered through `PRAGMA user_version`.
 
 ## Security
 

@@ -1,8 +1,9 @@
 name: Publish snap
 
-# Publishes the snap already attached to a release, without rebuilding it. Run by hand, and the
-# stable channel additionally needs approval through the `snap-stable` environment. It needs the
-# SNAPCRAFT_STORE_CREDENTIALS secret. See DEVELOPMENT.md.
+# Publishes a snap that has already been built, without rebuilding it. It comes from a workflow run
+# when one is given, and otherwise from the release. Run by hand, and the stable channel additionally
+# needs approval through the `snap-stable` environment. It needs the SNAPCRAFT_STORE_CREDENTIALS
+# secret. See DEVELOPMENT.md.
 on:
   workflow_dispatch:
     inputs:
@@ -10,6 +11,9 @@ on:
         description: Release whose snap to publish
         required: true
         default: v0.1.0
+      run:
+        description: ID of a workflow run to take the snap from instead
+        required: false
       channel:
         description: Snap Store channel
         required: true
@@ -19,6 +23,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   publish:
@@ -33,10 +38,19 @@ jobs:
             echo "::error::The SNAPCRAFT_STORE_CREDENTIALS secret is not set"
             exit 1
           }
-      - name: Fetch the snap from the release
+      - name: Fetch the snap
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release download "${{ inputs.tag }}" --repo "$GITHUB_REPOSITORY" --pattern '*.snap'
+          TAG: ${{ inputs.tag }}
+          RUN: ${{ inputs.run }}
+        run: |
+          if [ -n "$RUN" ]; then
+            gh run download "$RUN" --repo "$GITHUB_REPOSITORY" --name snap
+          else
+            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.snap'
+          fi
       - run: sudo snap install snapcraft --classic
       - name: Upload and release
-        run: snapcraft upload --release="${{ inputs.channel }}" ./*.snap
+        env:
+          CHANNEL: ${{ inputs.channel }}
+        run: snapcraft upload --release="$CHANNEL" ./*.snap

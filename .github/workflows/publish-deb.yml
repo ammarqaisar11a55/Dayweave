@@ -1,0 +1,41 @@
+name: Publish .deb
+
+# Publishes a .deb that CI already built as a GitHub pre-release, without rebuilding it. The run must
+# have built the tagged commit, so the wrong build can't be released by accident.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag
+        required: true
+        default: v0.1.0
+      run:
+        description: ID of the CI run that built this tag
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ inputs.tag }}
+      RUN: ${{ inputs.run }}
+    steps:
+      - name: Check that the run built the tagged commit
+        run: |
+          tagged=$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha)
+          built=$(gh run view "$RUN" --repo "$GITHUB_REPOSITORY" --json headSha --jq .headSha)
+          test "$tagged" = "$built" || {
+            echo "::error::Run $RUN built $built, but $TAG is $tagged"
+            exit 1
+          }
+      - name: Fetch the .deb
+        run: gh run download "$RUN" --repo "$GITHUB_REPOSITORY" --name deb
+      - name: Create the pre-release
+        run: |
+          gh release create "$TAG" ./*.deb --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
+            --title "Dayweave ${TAG#v}" --generate-notes

@@ -1,10 +1,12 @@
 import { X } from "lucide-react";
+import { createPortal } from "react-dom";
 
 import { dismissToast, toasts } from "../../lib/store";
 
 export function Toasts() {
   const list = toasts.use();
-  return (
+  // On the body, like dialogs, so that an error is never hidden behind the dialog it belongs to.
+  return createPortal(
     <div
       role="status"
       aria-live="polite"
@@ -38,6 +40,7 @@ export function Toasts() {
           </button>
         </div>
       ))}
-    </div>
+    </div>,
+    document.body,
   );
 }

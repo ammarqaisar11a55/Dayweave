@@ -40,7 +40,9 @@
     "linux": {
       "deb": {
         "desktopTemplate": "dayweave.desktop",
-        "depends": ["libayatana-appindicator3-1"]
+        "files": {
+          "/usr/share/metainfo/io.github.ammarqaisar11a55.dayweave.metainfo.xml": "../io.github.ammarqaisar11a55.dayweave.metainfo.xml"
+        }
       }
     }
   }

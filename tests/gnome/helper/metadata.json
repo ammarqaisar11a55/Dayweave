@@ -1,0 +1,6 @@
+{
+  "uuid": "dayweave-test-helper@ammarqaisar11a55.github.io",
+  "name": "Dayweave test helper",
+  "description": "Test only. Enables Shell.Eval inside a disposable session.",
+  "shell-version": ["50"]
+}

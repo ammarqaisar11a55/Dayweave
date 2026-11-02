@@ -12,6 +12,8 @@ Last updated 2026-11-02 for version 0.1.0, on Ubuntu 26.04 with GNOME Shell 50.
 | Interface tests | 31 passed |
 | Real application in GNOME, on the release binary | 17 of 17 checks passed |
 | Lint, formatting, type checks and Clippy with warnings as errors | Clean |
+| GitHub Actions CI on Ubuntu 24.04 | All three jobs passed |
+| Snap build on GitHub Actions | Succeeded in about 10 minutes |
 
 The release binary is 7.1 MB, the `.deb` is 3.3 MB, and the AppImage is 85 MB because it carries WebKit.
 
@@ -46,13 +48,14 @@ The release binary is 7.1 MB, the `.deb` is 3.3 MB, and the AppImage is 85 MB be
 | Area | Status |
 | --- | --- |
 | `.deb` | Built, with its contents, dependencies and launcher inspected. Not installed, because that needs root |
-| GitHub Actions | The workflow files parse, and the same lint, type, test and format commands pass locally. The workflows themselves have never run, because nothing has been pushed |
+| Snap | Built from source by GitHub Actions on `core24`. Never installed or run |
+| Release and Publish snap workflows | The files parse, but neither has run, because no version has been tagged |
 
 ## Not verified
 
 | Area | Why |
 | --- | --- |
-| **The snap** | This machine has no LXD, and installing it needs root, so **no snap has been built or run**. The recipe follows DayTrace's, which was verified in the Store, with `network` and `home` removed. Removing them is the main risk: WebKit, the portal file dialog and exports all need checking in the real snap |
+| **The snap at runtime** | A build proves that it packages, not that it works. No snap has been installed, because that needs root. The recipe follows DayTrace's, which was verified in the Store, with `network` and `home` removed. Removing them is the main risk: WebKit, the portal file dialog and exports all need checking in the real snap |
 | Tray icon and menu | A headless session has no AppIndicator host |
 | Snooze button | Only Complete was pressed. Snooze is covered by an integration test of the same operation |
 | File dialogs | The save and open dialogs were never opened, because a headless session has no portal backend for them. The export and restore code behind them is tested |

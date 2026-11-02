@@ -33,3 +33,6 @@ stage/
 .DS_Store
 Thumbs.db
 *.log
+
+# Local tool settings
+.claude/

@@ -1,0 +1,83 @@
+name: dayweave
+title: Dayweave
+license: MIT
+base: core24
+icon: src-tauri/icons/128x128@2x.png
+website: https://github.com/ammarqaisar11a55/Dayweave
+source-code: https://github.com/ammarqaisar11a55/Dayweave
+issues: https://github.com/ammarqaisar11a55/Dayweave/issues
+contact: https://github.com/ammarqaisar11a55/Dayweave/issues
+# The version is taken from package.json by the build below.
+adopt-info: dayweave
+summary: Tasks, deadlines, habits and focus, on your computer only
+description: |
+  Dayweave brings your tasks, deadlines, habits, calendar, focus sessions and
+  analytics together in one application. All data stays on your computer, with
+  no account, no cloud service, no telemetry and no network access.
+
+  Reminders are delivered while Dayweave is running, including when its window
+  is closed and it is waiting in the system tray. Quitting stops them until the
+  next launch. Turn on Start at login in Settings to have them from sign-in.
+
+grade: stable
+confinement: strict
+compression: lzo
+
+platforms:
+  amd64:
+
+apps:
+  dayweave:
+    command: usr/bin/dayweave
+    desktop: usr/share/applications/dayweave.desktop
+    autostart: dayweave.desktop
+    extensions: [gnome]
+    # Deliberately has neither `network` nor `home`. Nothing leaves the computer, and backups reach
+    # only the files chosen in the portal's file dialog.
+    plugs:
+      - browser-support
+
+parts:
+  dayweave:
+    plugin: nil
+    source: .
+    build-snaps:
+      # Ubuntu 24.04 ships Node 18, which is older than Vite needs.
+      - node/22/stable
+    build-packages:
+      - build-essential
+      - curl
+      - file
+      - libayatana-appindicator3-dev
+      - librsvg2-dev
+      - libssl-dev
+      - libwebkit2gtk-4.1-dev
+      - libxdo-dev
+      - pkg-config
+      - wget
+    stage-packages:
+      - libayatana-appindicator3-1
+      - libwebkit2gtk-4.1-0
+    override-pull: |
+      craftctl default
+      craftctl set version="$(node -p "require('./package.json').version")"
+    override-build: |
+      set -eu
+      # Rust comes from rustup's installer rather than the rustup snap, which links against a
+      # newer glibc than the GNOME SDK provides here.
+      export RUSTUP_HOME="${CRAFT_PART_BUILD}/.rustup"
+      export CARGO_HOME="${CRAFT_PART_BUILD}/.cargo"
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+        | sh -s -- -y --profile minimal --default-toolchain stable --no-modify-path
+      export PATH="${CARGO_HOME}/bin:${PATH}"
+      rustc --version
+      npm ci
+      npm run tauri build -- --bundles deb
+      dpkg -x target/release/bundle/deb/*.deb "${CRAFT_PART_INSTALL}"
+      # Inside the snap the icon is addressed by path rather than theme name. TryExec goes because
+      # the command is not on the host's PATH, and desktops would hide the entry from their menus.
+      apps="${CRAFT_PART_INSTALL}/usr/share/applications"
+      mv "${apps}/Dayweave.desktop" "${apps}/dayweave.desktop"
+      sed -i -e 's|^Icon=dayweave$|Icon=/usr/share/icons/hicolor/128x128/apps/dayweave.png|' \
+        -e '/^TryExec=/d' \
+        "${apps}/dayweave.desktop"

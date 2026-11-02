@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.ammarqaisar11a55.dayweave</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Dayweave</name>
+  <summary>Build better days, one habit at a time</summary>
+  <description>
+    <p>
+      Dayweave brings tasks, deadlines, habits, a calendar, focus sessions and analytics together in
+      one application. All data stays on your computer, with no account, no cloud service and no
+      telemetry.
+    </p>
+  </description>
+  <launchable type="desktop-id">Dayweave.desktop</launchable>
+  <developer id="io.github.ammarqaisar11a55">
+    <name>Muhammad Ammar Qaisar</name>
+  </developer>
+  <url type="homepage">https://github.com/ammarqaisar11a55/Dayweave</url>
+  <url type="bugtracker">https://github.com/ammarqaisar11a55/Dayweave/issues</url>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-11-02"/>
+  </releases>
+</component>

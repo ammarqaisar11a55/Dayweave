@@ -116,8 +116,9 @@ To publish a `.deb` that CI already built as a pre-release, without rebuilding i
 **Publish .deb** workflow with the tag and the ID of the CI run that built it.
 
 To put a snap on a Snap Store channel, run the **Publish snap** workflow and choose `edge`, `beta`,
-`candidate` or `stable`. It uses the release's snap, or the snap from a workflow run if you give one. Create two GitHub environments first: `snap-prerelease`,
-and `snap-stable` with a required reviewer, which is what makes a stable release wait for approval.
+`candidate` or `stable`. It uses the release's snap, or the snap from a workflow run if you give one.
+Create the `snap-stable` GitHub environment with a required reviewer first, which is what makes a
+stable release wait for approval.
 
 ## Snap builds
 

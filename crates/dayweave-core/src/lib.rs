@@ -7,6 +7,7 @@ pub mod focus;
 pub mod habits;
 pub mod projects;
 pub mod recurrence;
+pub mod reminders;
 pub mod settings;
 pub mod streaks;
 pub mod tasks;

@@ -1,6 +1,7 @@
 //! Storage and product logic for Dayweave. Nothing here depends on Tauri or GTK.
 
 pub mod analytics;
+pub mod backup;
 pub mod calendar;
 pub mod clock;
 pub mod db;

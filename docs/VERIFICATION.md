@@ -15,6 +15,7 @@ Last updated 2026-11-02 for version 0.1.0, on Ubuntu 26.04 with GNOME Shell 50.
 | GitHub Actions CI on Ubuntu 24.04 | All three jobs passed |
 | Snap build on GitHub Actions | Succeeded in about 10 minutes |
 | Publish .deb workflow | Published v0.1.0 as a pre-release |
+| Publish snap workflow | Published revision 1 to the beta channel, and the store's automated review passed |
 
 The release binary is 7.1 MB, the `.deb` is 3.3 MB, and the AppImage is 85 MB because it carries WebKit.
 
@@ -51,7 +52,6 @@ The release binary is 7.1 MB, the `.deb` is 3.3 MB, and the AppImage is 85 MB be
 | `.deb` | Built, with its contents, dependencies and launcher inspected. Not installed, because that needs root |
 | Snap | Built from source by GitHub Actions on `core24`. Never installed or run |
 | Release workflow | Its checks and all three builds passed for v0.1.0, but its last step failed. That step is fixed and has not run again |
-| Publish snap workflow | Not run yet |
 
 ## Not verified
 

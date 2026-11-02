@@ -62,3 +62,10 @@ jobs:
       - run: cargo test -p dayweave
       - name: Production build
         run: npm run tauri build -- --bundles deb
+      - name: Keep the .deb for a week
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb
+          path: target/release/bundle/deb/*.deb
+          if-no-files-found: error
+          retention-days: 7

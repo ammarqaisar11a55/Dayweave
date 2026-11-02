@@ -4,13 +4,9 @@ Dayweave is built for Ubuntu 24.04 and newer.
 
 ## Snap
 
-Dayweave is on the Snap Store's beta channel:
-
 ```bash
-sudo snap install dayweave --beta
+sudo snap install dayweave
 ```
-
-The stable channel will follow once the snap has been tried on real desktops.
 
 To install a `.snap` file you built or downloaded from a release:
 

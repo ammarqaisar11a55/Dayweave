@@ -16,6 +16,7 @@ Last updated 2026-11-02 for version 0.1.0, on Ubuntu 26.04 with GNOME Shell 50.
 | Snap build on GitHub Actions | Succeeded in about 10 minutes |
 | Publish .deb workflow | Published v0.1.0 as a pre-release |
 | Publish snap workflow | Published revision 1 to the beta channel, and the store's automated review passed |
+| Snap on a real desktop | Revision 1 was installed from the beta channel and tested by hand by the author, then released to stable. The individual checks weren't recorded |
 
 The release binary is 7.1 MB, the `.deb` is 3.3 MB, and the AppImage is 85 MB because it carries WebKit.
 
@@ -50,15 +51,13 @@ The release binary is 7.1 MB, the `.deb` is 3.3 MB, and the AppImage is 85 MB be
 | Area | Status |
 | --- | --- |
 | `.deb` | Built, with its contents, dependencies and launcher inspected. Not installed, because that needs root |
-| Snap | Built from source by GitHub Actions on `core24`. Never installed or run |
 | Release workflow | Its checks and all three builds passed for v0.1.0, but its last step failed. That step is fixed and has not run again |
 
 ## Not verified
 
 | Area | Why |
 | --- | --- |
-| **The snap at runtime** | A build proves that it packages, not that it works. No snap has been installed, because that needs root. The recipe follows DayTrace's, which was verified in the Store, with `network` and `home` removed. Removing them is the main risk: WebKit, the portal file dialog and exports all need checking in the real snap |
-| Tray icon and menu | A headless session has no AppIndicator host |
+| Tray icon and menu | A headless session has no AppIndicator host, so this has no automated check |
 | Snooze button | Only Complete was pressed. Snooze is covered by an integration test of the same operation |
 | File dialogs | The save and open dialogs were never opened, because a headless session has no portal backend for them. The export and restore code behind them is tested |
 | Start at login after a real sign-in | The entry is written correctly, but no real session has started from it |

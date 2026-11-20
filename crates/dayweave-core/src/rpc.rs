@@ -120,6 +120,11 @@ impl Core {
             "settings.get" => settings::all(conn),
             "settings.set" => settings::set(conn, input(params)?),
 
+            "scheduler.nextWake" => {
+                let at = reminders::next_wake(conn, clock)?.map(crate::clock::format_instant);
+                output(json!({ "at": at }))
+            }
+
             "notifications.list" => output(reminders::log(conn, input(params)?)?),
             "notifications.markRead" => {
                 reminders::mark_all_read(conn, clock)?;

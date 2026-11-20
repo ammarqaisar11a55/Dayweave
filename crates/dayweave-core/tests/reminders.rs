@@ -290,3 +290,63 @@ fn the_notification_center_tracks_unread_and_clearing_cannot_refire() {
     app.set("2026-11-02T12:01");
     assert!(app.tick().is_empty(), "the cleared entry still prevents a repeat");
 }
+
+fn next_wake(app: &App) -> Value {
+    app.call("scheduler.nextWake", json!({}))["at"].clone()
+}
+
+#[test]
+fn nothing_scheduled_means_no_wake_up() {
+    let app = App::new();
+    assert!(next_wake(&app).is_null());
+}
+
+#[test]
+fn the_next_wake_up_is_the_earliest_reminder_still_to_come() {
+    let app = App::new();
+    app.task("Later", json!({ "dueDate": "2026-11-02", "dueTime": "18:00", "reminders": [before(0)] }));
+    app.task("Sooner", json!({ "dueDate": "2026-11-02", "dueTime": "12:00", "reminders": [before(30)] }));
+    app.task("Passed", json!({ "dueDate": "2026-11-02", "dueTime": "09:00", "reminders": [before(0)] }));
+    // 11:30 in Karachi.
+    assert_eq!(next_wake(&app), "2026-11-02T06:30:00Z");
+}
+
+#[test]
+fn a_completed_task_no_longer_wakes_the_scheduler() {
+    let app = App::new();
+    let task = app
+        .task("Done early", json!({ "dueDate": "2026-11-02", "dueTime": "12:00", "reminders": [before(0)] }));
+    app.call("tasks.complete", json!({ "id": task["id"] }));
+    assert!(next_wake(&app).is_null());
+}
+
+#[test]
+fn a_habit_reminder_that_has_passed_today_wakes_tomorrow() {
+    let app = App::new();
+    app.habit("Morning pages", json!({ "reminderTime": "08:00" }));
+    assert_eq!(next_wake(&app), "2026-11-03T03:00:00Z");
+    app.habit("Evening walk", json!({ "reminderTime": "18:00" }));
+    assert_eq!(next_wake(&app), "2026-11-02T13:00:00Z");
+}
+
+#[test]
+fn a_running_focus_session_wakes_the_scheduler_when_it_ends() {
+    let app = App::new();
+    app.task("Far away", json!({ "dueDate": "2026-12-01", "reminders": [before(0)] }));
+    app.call("focus.start", json!({ "kind": "focus", "minutes": 25 }));
+    assert_eq!(next_wake(&app), "2026-11-02T05:25:00Z");
+    app.call("focus.pause", json!({}));
+    assert_eq!(next_wake(&app), "2026-12-01T04:00:00Z", "a paused session has no end time");
+}
+
+#[test]
+fn ticking_at_the_wake_up_time_delivers_the_reminder() {
+    let app = App::new();
+    start(&app);
+    app.task("Exact", json!({ "dueDate": "2026-11-02", "dueTime": "12:00", "reminders": [before(15)] }));
+    let wake = next_wake(&app);
+    assert_eq!(wake, "2026-11-02T06:45:00Z");
+    app.set("2026-11-02T11:45");
+    assert_eq!(app.tick(), ["Exact"]);
+    assert!(next_wake(&app).is_null());
+}

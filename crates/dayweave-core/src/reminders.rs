@@ -209,6 +209,31 @@ fn record(conn: &Connection, notice: &Notice, at: DateTime<Utc>) -> Result<bool>
     Ok(inserted == 1)
 }
 
+/// The next moment the scheduler has work to do: a reminder falling due, or a focus session ending.
+/// A platform that can't poll, such as Android, sets an alarm for this moment and calls `tick` when it
+/// arrives. Waking for a habit that turns out to be done already is harmless: `tick` finds nothing.
+pub fn next_wake(conn: &Connection, clock: &dyn Clock) -> Result<Option<DateTime<Utc>>> {
+    let now = clock.now();
+    let horizon = now + Duration::days(400);
+    let mut candidates: Vec<DateTime<Utc>> =
+        task_reminders(conn, clock, now, horizon)?.into_iter().map(|due| due.fire).collect();
+
+    let today = clock.today();
+    for habit in crate::habits::with_reminders(conn, clock)? {
+        let time = parse_time(&habit.time)?;
+        let fire = clock.to_instant(today.and_time(time));
+        let tomorrow = clock.to_instant((today + Duration::days(1)).and_time(time));
+        candidates.push(if fire > now { fire } else { tomorrow });
+    }
+
+    if let Some(session) = focus::current(conn, clock)? {
+        if let (true, Some(end)) = (session.status == "running", session.ends_at.as_deref()) {
+            candidates.push(parse_instant(end)?);
+        }
+    }
+    Ok(candidates.into_iter().min())
+}
+
 /// One pass of the scheduler. Returns what should be shown as desktop notifications now.
 pub fn tick(conn: &Connection, clock: &dyn Clock) -> Result<Vec<Notice>> {
     let now = clock.now();

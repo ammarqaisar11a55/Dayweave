@@ -23,6 +23,11 @@
   <url type="bugtracker">https://github.com/ammarqaisar11a55/Dayweave/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.2.0" date="2026-11-21">
+      <description>
+        <p>Optional sync keeps Dayweave in step with your phone and other computers, and everything keeps working offline.</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-11-02"/>
   </releases>
 </component>

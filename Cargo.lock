@@ -665,7 +665,7 @@ dependencies = [
 
 [[package]]
 name = "dayweave"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "dayweave-core",
  "notify-rust",
@@ -677,7 +677,7 @@ dependencies = [
 
 [[package]]
 name = "dayweave-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "chrono-tz",

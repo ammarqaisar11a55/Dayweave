@@ -146,11 +146,18 @@ impl Core {
             return Err(Error::invalid("Choose a password of at least 8 characters"));
         }
         let path = if create { "signup" } else { "login" };
-        let reply = self.post(
-            format!("{server}/auth/{path}"),
-            None,
-            json!({ "email": email, "password": params.password, "device": params.device }),
-        )?;
+        let reply = self
+            .post(
+                format!("{server}/auth/{path}"),
+                None,
+                json!({ "email": email, "password": params.password, "device": params.device }),
+            )
+            .map_err(|error| match error {
+                Error::Offline(_) => {
+                    Error::Offline("Couldn't reach that server. Check the address and your connection".into())
+                }
+                other => other,
+            })?;
         let token = reply["token"].as_str().ok_or_else(|| Error::invalid("The server didn't sign you in"))?;
         {
             let conn = self.lock();

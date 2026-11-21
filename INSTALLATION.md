@@ -11,7 +11,7 @@ sudo snap install dayweave
 To install a `.snap` file you built or downloaded from a release:
 
 ```bash
-sudo snap install ./dayweave_0.2.0_amd64.snap --dangerous
+sudo snap install ./dayweave_0.2.1_amd64.snap --dangerous
 ```
 
 Strict confinement means the snap can't read your home folder. It can reach the network, which only
@@ -24,7 +24,7 @@ Dayweave.
 Download the `.deb` from [GitHub Releases](https://github.com/ammarqaisar11a55/Dayweave/releases):
 
 ```bash
-sudo apt install ./Dayweave_0.2.0_amd64.deb
+sudo apt install ./Dayweave_0.2.1_amd64.deb
 ```
 
 ## AppImage
@@ -32,11 +32,11 @@ sudo apt install ./Dayweave_0.2.0_amd64.deb
 Download the AppImage from the same page, then:
 
 ```bash
-chmod +x Dayweave_0.2.0_amd64.AppImage
+chmod +x Dayweave_0.2.1_amd64.AppImage
 ```
 
 ```bash
-./Dayweave_0.2.0_amd64.AppImage
+./Dayweave_0.2.1_amd64.AppImage
 ```
 
 ## Where your data is

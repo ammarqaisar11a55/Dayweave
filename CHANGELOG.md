@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+### Added
+
+- A Sync button in the sidebar once you're signed in, showing changes waiting and whether the last
+  sync finished
+- Dayweave syncs whenever its window opens, not only when it starts
+
 ## 0.2.0
 
 ### Added

@@ -86,8 +86,9 @@ as a table.
 ## Sync, when you want it
 
 Dayweave works fully on your computer, and always will. To have the same tasks and habits on your
-phone and other computers, sign in to a [Dayweave server](https://github.com/ammarqaisar11a55/Dayweave-Server)
-in **Settings → Sync**. Everything keeps working offline: changes wait on your computer and sync
+phone and other computers, create an account or sign in under **Settings → Sync**. Dayweave uses
+its own server, `dayweave-server.vercel.app`, unless you
+[run your own](https://github.com/ammarqaisar11a55/Dayweave-Server) and enter its address. Everything keeps working offline: changes wait on your computer and sync
 the next time it's online. When the same thing was changed on two devices, the later change wins.
 
 ## Reminders

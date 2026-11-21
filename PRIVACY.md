@@ -12,9 +12,11 @@ Dayweave keeps everything on your computer unless you turn on sync.
 
 ## Sync
 
-Sync is off until you sign in to a Dayweave server in Settings → Sync. Then:
+Sync is off until you sign in under Settings → Sync. Dayweave's own server is
+`dayweave-server.vercel.app`, run by Dayweave's developer on Vercel, with data in a Supabase Postgres
+database in Tokyo. You can enter the address of a server you run instead. Then:
 
-- Dayweave talks only to the server address you entered, over HTTPS, and only to sign in, sync and
+- Dayweave talks only to that server, over HTTPS, and only to sign in, sync and
   sign out. It refuses plain HTTP except to a server on your own computer.
 - Your tasks, habits, check-ins, projects, finished focus sessions and preferences are sent to that
   server and stored there, so your other devices can fetch them. Start at login, keep running in the

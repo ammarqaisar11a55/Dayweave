@@ -192,8 +192,12 @@ function syncSummary(status: SyncStatus): string {
   return "Not synced yet";
 }
 
+/** The public Dayweave sync server. Anyone running their own can enter its address instead. */
+const DEFAULT_SERVER = "https://dayweave-server.vercel.app";
+
 function SignInForm({ status }: { status: SyncStatus }) {
-  const [server, setServer] = useState(status.server ?? "");
+  const [server, setServer] = useState(status.server ?? DEFAULT_SERVER);
+  const [customServer, setCustomServer] = useState(server !== DEFAULT_SERVER);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -219,16 +223,6 @@ function SignInForm({ status }: { status: SyncStatus }) {
         Dayweave works fully on this computer. Sign in to a Dayweave server to keep your tasks and habits in step with your phone and other
         computers. Changes made offline sync when you&rsquo;re back online.
       </p>
-      <label className="flex flex-col gap-1 text-meta text-ink-2">
-        Server address
-        <Input
-          aria-label="Server address"
-          value={server}
-          onChange={(event) => setServer(event.target.value)}
-          placeholder="https://your-server.vercel.app"
-          autoComplete="url"
-        />
-      </label>
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-meta text-ink-2">
           Email
@@ -245,7 +239,24 @@ function SignInForm({ status }: { status: SyncStatus }) {
           />
         </label>
       </div>
-      <div className="flex justify-end gap-2">
+      {customServer ? (
+        <label className="flex flex-col gap-1 text-meta text-ink-2">
+          Server address
+          <Input
+            aria-label="Server address"
+            value={server}
+            onChange={(event) => setServer(event.target.value)}
+            placeholder={DEFAULT_SERVER}
+            autoComplete="url"
+          />
+        </label>
+      ) : null}
+      <div className="flex items-center justify-end gap-2">
+        {!customServer && (
+          <Button variant="ghost" size="sm" className="mr-auto" onClick={() => setCustomServer(true)}>
+            Use a different server
+          </Button>
+        )}
         <Button disabled={!ready || busy} onClick={() => void submit(true)}>
           Create account
         </Button>

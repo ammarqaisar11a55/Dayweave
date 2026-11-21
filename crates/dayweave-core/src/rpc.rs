@@ -33,6 +33,9 @@ struct FilePath {
 
 impl Core {
     pub fn rpc(&self, method: &str, params: Value) -> Result<Value> {
+        if let Some(result) = self.sync_rpc(method, params.clone()) {
+            return result;
+        }
         let guard = self.lock();
         let conn: &rusqlite::Connection = &guard;
         let clock = self.clock.as_ref();

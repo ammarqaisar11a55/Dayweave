@@ -13,6 +13,9 @@ pub enum Error {
     DatabaseTooNew,
     #[error("Unknown operation: {0}")]
     UnknownMethod(String),
+    /// The sync server couldn't be reached. Nothing is lost: changes wait for the next sync.
+    #[error("{0}")]
+    Offline(String),
     #[error("Database error: {0}")]
     Database(#[from] rusqlite::Error),
     #[error("File error: {0}")]
@@ -32,6 +35,7 @@ impl Error {
             Error::NotFound(_) => "not_found",
             Error::DatabaseTooNew => "database_too_new",
             Error::UnknownMethod(_) => "unknown_method",
+            Error::Offline(_) => "offline",
             Error::Database(_) => "database",
             Error::Io(_) => "io",
             Error::Json(_) => "json",

@@ -373,6 +373,17 @@ export interface BackupPreview {
   current: BackupCounts;
 }
 
+/** Whether this device syncs with a Dayweave server. Everything works without it. */
+export interface SyncStatus {
+  signedIn: boolean;
+  server: string | null;
+  email: string | null;
+  lastSyncAt: string | null;
+  lastError: string | null;
+  /** Changes on this device not yet sent. */
+  pending: number;
+}
+
 export interface AppInfo {
   version: string;
   schemaVersion: number;

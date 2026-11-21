@@ -1,4 +1,4 @@
-import { Database, Download, FileJson, FileSpreadsheet, FolderOpen, Keyboard, Upload } from "lucide-react";
+import { CloudOff, Database, Download, FileJson, FileSpreadsheet, FolderOpen, Keyboard, LogOut, RefreshCw, Upload } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { open, save } from "@tauri-apps/plugin-dialog";
@@ -14,7 +14,7 @@ import { inTauri, rpc } from "../lib/api";
 import { formatInstant, today } from "../lib/date";
 import { setSetting, useSettings } from "../lib/settings";
 import { act, mutate, showToast, useRpc } from "../lib/store";
-import type { AppInfo, BackupCounts, BackupPreview, Settings as SettingsData } from "../lib/types";
+import type { AppInfo, BackupCounts, BackupPreview, Settings as SettingsData, SyncStatus } from "../lib/types";
 import { showShortcuts } from "../lib/ui";
 
 function Row({ title, detail, children, htmlFor }: { title: string; detail?: string; children: ReactNode; htmlFor?: string }) {
@@ -186,6 +186,172 @@ function DataSection() {
   );
 }
 
+function syncSummary(status: SyncStatus): string {
+  if (status.pending > 0) return `${status.pending} ${status.pending === 1 ? "change" : "changes"} waiting to sync`;
+  if (status.lastSyncAt) return `Up to date. Last synced ${formatInstant(status.lastSyncAt)}`;
+  return "Not synced yet";
+}
+
+function SignInForm({ status }: { status: SyncStatus }) {
+  const [server, setServer] = useState(status.server ?? "");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const ready = server.trim() !== "" && email.trim() !== "" && password !== "";
+  const submit = async (create: boolean) => {
+    setBusy(true);
+    try {
+      await mutate(create ? "sync.signUp" : "sync.signIn", { server, email, password, device: "Dayweave for Ubuntu" });
+      showToast(create ? "Account created. Syncing is on" : "Signed in. Syncing is on");
+    } catch {
+      setBusy(false);
+    }
+  };
+  return (
+    <form
+      className="flex flex-col gap-3 p-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (ready) void submit(false);
+      }}
+    >
+      <p className="text-body text-ink-2">
+        Dayweave works fully on this computer. Sign in to a Dayweave server to keep your tasks and habits in step with your phone and other
+        computers. Changes made offline sync when you&rsquo;re back online.
+      </p>
+      <label className="flex flex-col gap-1 text-meta text-ink-2">
+        Server address
+        <Input
+          aria-label="Server address"
+          value={server}
+          onChange={(event) => setServer(event.target.value)}
+          placeholder="https://your-server.vercel.app"
+          autoComplete="url"
+        />
+      </label>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1 text-meta text-ink-2">
+          Email
+          <Input aria-label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
+        </label>
+        <label className="flex flex-col gap-1 text-meta text-ink-2">
+          Password
+          <Input
+            aria-label="Password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+          />
+        </label>
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button disabled={!ready || busy} onClick={() => void submit(true)}>
+          Create account
+        </Button>
+        <Button type="submit" variant="primary" disabled={!ready || busy}>
+          Sign in
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const remove = async () => {
+    setBusy(true);
+    try {
+      await mutate("sync.deleteAccount", { password });
+      showToast("Account deleted from the server. Your data here is unchanged");
+      onClose();
+    } catch {
+      setBusy(false);
+    }
+  };
+  return (
+    <Dialog
+      title="Delete your sync account?"
+      onClose={onClose}
+      width="max-w-md"
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="danger" disabled={busy || password === ""} onClick={() => void remove()}>
+            Delete account
+          </Button>
+        </>
+      }
+    >
+      <p className="text-body text-ink-2">
+        Everything stored on the server for this account is deleted, and every device stops syncing. The data on this computer stays as
+        it is.
+      </p>
+      <label className="mt-3 flex flex-col gap-1 text-meta text-ink-2">
+        Password
+        <Input
+          aria-label="Password"
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="current-password"
+        />
+      </label>
+    </Dialog>
+  );
+}
+
+function SyncSection() {
+  const { data: status } = useRpc<SyncStatus>("sync.status");
+  const [syncing, setSyncing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const syncNow = async () => {
+    setSyncing(true);
+    try {
+      await mutate("sync.run");
+    } catch {
+      // The toast says why. Changes stay here until the next try.
+    }
+    setSyncing(false);
+  };
+  if (!status) return null;
+  return (
+    <Section title="Sync">
+      <div className="surface row-list">
+        {!status.signedIn ? (
+          <SignInForm status={status} />
+        ) : (
+          <>
+            <Row title={`Syncing as ${status.email ?? "you"}`} detail={`${status.server ?? ""}. ${syncSummary(status)}`}>
+              <Button icon={RefreshCw} disabled={syncing} onClick={() => void syncNow()}>
+                {syncing ? "Syncing…" : "Sync now"}
+              </Button>
+            </Row>
+            {status.lastError && (
+              <div className="flex items-start gap-2 px-4 py-3 text-meta text-warning">
+                <CloudOff size={14} aria-hidden className="mt-px shrink-0" />
+                <span>{status.lastError}</span>
+              </div>
+            )}
+            <Row title="Sign out" detail="Stops syncing on this computer. Your data stays here and on the server">
+              <Button icon={LogOut} onClick={() => void act("sync.signOut", {}, "Signed out. Syncing is off")}>
+                Sign out
+              </Button>
+            </Row>
+            <Row title="Delete account" detail="Removes everything stored on the server. The data on your devices stays">
+              <Button variant="danger" onClick={() => setDeleting(true)}>
+                Delete account
+              </Button>
+            </Row>
+          </>
+        )}
+      </div>
+      {deleting && <DeleteAccountDialog onClose={() => setDeleting(false)} />}
+    </Section>
+  );
+}
+
 export function Settings() {
   const settings = useSettings();
   const { data: info } = useRpc<AppInfo>("app.info");
@@ -322,13 +488,15 @@ export function Settings() {
           </div>
         </Section>
 
+        <SyncSection />
+
         <DataSection />
 
         <Section title="Privacy">
           <div className="surface p-4 text-body text-ink-2">
             <p>
-              Dayweave works entirely on this computer. It has no account, sends nothing over the network and contains no tracking or
-              advertising. Your data stays in one file that you control.
+              Dayweave works entirely on this computer unless you turn on sync. Then it talks only to the server you chose, and only to sync
+              your data. It contains no tracking or advertising, and your data stays in one file that you control.
             </p>
             {info?.dataDir && (
               <p className="mt-3 flex items-start gap-2 text-meta">

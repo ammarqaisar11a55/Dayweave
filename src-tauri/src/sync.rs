@@ -1,6 +1,7 @@
 //! Keeps this computer in step with the sync server, when the person has signed in to one. Changes are
 //! sent within seconds while there's a connection; offline, they wait and nothing else is affected.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::{self, Thread};
 use std::time::{Duration, Instant};
@@ -15,6 +16,15 @@ const FETCH_EVERY: Duration = Duration::from_secs(5 * 60);
 /// How long to wait after the server couldn't be reached.
 const RETRY_AFTER: Duration = Duration::from_secs(60);
 
+/// Set when the window opens, so the next pass syncs even if nothing changed here.
+static REQUESTED: AtomicBool = AtomicBool::new(false);
+
+/// Asks for a sync now, as when the window opens.
+pub fn request(sync: &Thread) {
+    REQUESTED.store(true, Ordering::SeqCst);
+    sync.unpark();
+}
+
 /// Starts the loop. Unparking the returned thread makes it look again straight away.
 pub fn start(app: AppHandle, core: Arc<Core>, scheduler: Thread) -> Thread {
     thread::spawn(move || {
@@ -24,7 +34,8 @@ pub fn start(app: AppHandle, core: Arc<Core>, scheduler: Thread) -> Thread {
             let mut wait = CHANGES_EVERY;
             if core.sync_enabled().unwrap_or(false) {
                 let pending = core.sync_pending().unwrap_or(0);
-                let due = last_sync.is_none_or(|time| time.elapsed() >= FETCH_EVERY);
+                let requested = REQUESTED.swap(false, Ordering::SeqCst);
+                let due = requested || last_sync.is_none_or(|time| time.elapsed() >= FETCH_EVERY);
                 if pending > 0 || due {
                     match core.sync_now() {
                         Ok(report) => {

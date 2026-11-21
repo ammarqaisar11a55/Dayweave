@@ -32,6 +32,10 @@ pub(crate) fn show_window(app: &AppHandle) {
         let _ = window.unminimize();
         let _ = window.set_focus();
     }
+    // Opening Dayweave fetches other devices' changes straight away.
+    if let Some(shell) = app.try_state::<Shell>() {
+        sync::request(&shell.sync);
+    }
 }
 
 /// Runs a launcher, tray or second-launch action in the interface.

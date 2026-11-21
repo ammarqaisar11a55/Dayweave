@@ -50,6 +50,17 @@ impl Transport for Server {
                 return Ok(json!({ "token": device, "email": body["email"] }));
             }
             "/auth/logout" => return Ok(json!({})),
+            "/auth/delete-account" => {
+                if body["password"] != "correct horse" {
+                    return Err(TransportError::Rejected {
+                        status: 401,
+                        code: "wrong_password".into(),
+                        message: "That password isn't right".into(),
+                    });
+                }
+                self.records.lock().unwrap().clear();
+                return Ok(json!({}));
+            }
             "/sync" => {}
             other => panic!("unexpected request to {other}"),
         }
@@ -433,4 +444,20 @@ fn many_records_sync_in_rounds() {
     assert_eq!(report["sent"], 450);
     let desktop = signed_in(&server, "desktop");
     assert_eq!(desktop.list("all").len(), 450);
+}
+
+#[test]
+fn deleting_the_account_needs_the_password_and_keeps_this_devices_data() {
+    let server = Arc::new(Server::default());
+    let phone = signed_in(&server, "phone");
+    phone.task("Mine", json!({}));
+    sync(&phone);
+    let error = phone.call_err("sync.deleteAccount", json!({ "password": "guess" }));
+    assert!(error.to_string().contains("isn't right"), "{error}");
+    assert_eq!(phone.call("sync.status", json!({}))["signedIn"], true);
+
+    phone.call("sync.deleteAccount", json!({ "password": "correct horse" }));
+    assert_eq!(phone.call("sync.status", json!({}))["signedIn"], false);
+    assert_eq!(phone.list("all"), ["Mine"]);
+    assert!(server.records.lock().unwrap().is_empty());
 }

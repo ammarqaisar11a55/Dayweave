@@ -127,7 +127,7 @@ impl Core {
                 "Couldn't reach the sync server. Your changes are saved here and will sync when you're online".into(),
             ),
             // This device's token was revoked or has expired. Stop trying until the person signs in.
-            TransportError::Rejected { status: 401, .. } if token.is_some() => {
+            TransportError::Rejected { status: 401, code, .. } if token.is_some() && code == "unauthorized" => {
                 let _ = self.lock().execute("DELETE FROM app_settings WHERE key = ?1", [sync::TOKEN]);
                 Error::invalid("This device was signed out of sync. Sign in again to keep syncing")
             }
@@ -175,6 +175,21 @@ impl Core {
             // Revoking this device's token is a courtesy. Signing out works offline too.
             let _ = self.post(format!("{}/auth/logout", account.server), Some(&account.token), json!({}));
         }
+        sync::forget_account(&self.lock())?;
+        self.sync_status()
+    }
+
+    /// Deletes the account and everything the server holds for it, then signs this device out. Data
+    /// on this device stays. The server asks for the password again.
+    fn delete_account(&self, params: Value) -> Result<Value> {
+        let password = params["password"].as_str().unwrap_or_default().to_string();
+        let _running = self.syncing.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let account = sync::account(&self.lock())?.ok_or_else(|| Error::invalid("Sign in to sync first"))?;
+        self.post(
+            format!("{}/auth/delete-account", account.server),
+            Some(&account.token),
+            json!({ "password": password }),
+        )?;
         sync::forget_account(&self.lock())?;
         self.sync_status()
     }
@@ -241,6 +256,7 @@ impl Core {
             "sync.signUp" => parse(params).and_then(|params| self.sign_in(params, true)),
             "sync.signIn" => parse(params).and_then(|params| self.sign_in(params, false)),
             "sync.signOut" => self.sign_out(),
+            "sync.deleteAccount" => self.delete_account(params),
             "sync.run" => self.sync_now().and_then(|report| Ok(serde_json::to_value(report)?)),
             _ => return None,
         })

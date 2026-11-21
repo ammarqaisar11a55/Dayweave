@@ -2,6 +2,7 @@ mod autostart;
 mod instance;
 mod notifier;
 mod scheduler;
+mod sync;
 mod tray;
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -18,6 +19,7 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 pub struct Shell {
     core: Arc<Core>,
     scheduler: Thread,
+    sync: Thread,
     /// A launcher action that arrived before the interface was ready for it.
     pending: Mutex<Option<String>>,
     ready: AtomicBool,
@@ -47,6 +49,8 @@ pub(crate) fn perform(app: &AppHandle, action: &str) {
 async fn rpc(state: State<'_, Shell>, method: String, params: Value) -> Result<Value, Error> {
     let core = state.core.clone();
     let wakes_scheduler = method.starts_with("focus.");
+    // Signing in or out changes whether the sync loop has anything to do.
+    let wakes_sync = method.starts_with("sync.sign");
     let autostart = (method == "settings.set" && params["key"] == "startAtLogin")
         .then(|| params["value"].as_bool().unwrap_or(false));
 
@@ -55,6 +59,9 @@ async fn rpc(state: State<'_, Shell>, method: String, params: Value) -> Result<V
         .map_err(|error| Error::invalid(format!("The request was interrupted: {error}")))?;
     if wakes_scheduler {
         state.scheduler.unpark();
+    }
+    if wakes_sync {
+        state.sync.unpark();
     }
     let value = result?;
     if let Some(enabled) = autostart {
@@ -126,10 +133,12 @@ pub fn run() {
             };
 
             let scheduler = scheduler::start(handle.clone(), core.clone());
+            let sync = sync::start(handle.clone(), core.clone(), scheduler.clone());
             let pending = (action != "show").then(|| action.clone());
             app.manage(Shell {
                 core,
                 scheduler,
+                sync,
                 pending: Mutex::new(pending),
                 ready: AtomicBool::new(false),
                 background,

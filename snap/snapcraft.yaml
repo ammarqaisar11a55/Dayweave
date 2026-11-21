@@ -9,11 +9,15 @@ issues: https://github.com/ammarqaisar11a55/Dayweave/issues
 contact: https://github.com/ammarqaisar11a55/Dayweave/issues
 # The version is taken from package.json by the build below.
 adopt-info: dayweave
-summary: Tasks, deadlines, habits and focus, on your computer only
+summary: Tasks, deadlines, habits and focus, offline first
 description: |
   Dayweave brings your tasks, deadlines, habits, calendar, focus sessions and
-  analytics together in one application. All data stays on your computer, with
-  no account, no cloud service, no telemetry and no network access.
+  analytics together in one application. Everything works on your computer,
+  with no account needed, no telemetry and no advertising.
+
+  Optional sync keeps your data in step with Dayweave on your phone and other
+  computers, through a Dayweave server you choose. Changes made offline sync
+  when you're back online.
 
   Reminders are delivered while Dayweave is running, including when its window
   is closed and it is waiting in the system tray. Quitting stops them until the
@@ -32,10 +36,11 @@ apps:
     desktop: usr/share/applications/dayweave.desktop
     autostart: dayweave.desktop
     extensions: [gnome]
-    # Deliberately has neither `network` nor `home`. Nothing leaves the computer, and backups reach
-    # only the files chosen in the portal's file dialog.
+    # `network` is used only by optional sync, and only to reach the server the person chose.
+    # Deliberately no `home`: backups reach only the files chosen in the portal's file dialog.
     plugs:
       - browser-support
+      - network
 
 parts:
   dayweave:

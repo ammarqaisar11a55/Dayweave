@@ -66,7 +66,12 @@ pub fn dump(conn: &Connection, clock: &dyn Clock) -> Result<Document> {
     let mut tables = BTreeMap::new();
     for table in TABLES {
         if table_exists(conn, table)? {
-            tables.insert((*table).to_string(), read_table(conn, table)?);
+            let mut rows = read_table(conn, table)?;
+            if *table == "app_settings" {
+                // The sync sign-in belongs to this device and must never leave it in a file.
+                rows.retain(|row| !is_sync_account(row.get("key").and_then(Value::as_str)));
+            }
+            tables.insert((*table).to_string(), rows);
         }
     }
     Ok(Document {
@@ -77,6 +82,10 @@ pub fn dump(conn: &Connection, clock: &dyn Clock) -> Result<Document> {
         exported_at: format_instant(clock.now()),
         tables,
     })
+}
+
+fn is_sync_account(key: Option<&str>) -> bool {
+    key.is_some_and(|key| key.starts_with("internal.sync."))
 }
 
 fn to_sql(value: &Value) -> Result<SqlValue> {
@@ -105,6 +114,11 @@ fn replace_all(conn: &Connection, document: &Document) -> Result<()> {
     let tx = conn.unchecked_transaction()?;
     // Children may be inserted before the rows they point at, so checks wait until commit.
     tx.pragma_update(None, "defer_foreign_keys", true)?;
+    // This device stays signed in to sync. A backup from another device can't sign it in elsewhere.
+    let sync_account: Vec<(String, String)> = tx
+        .prepare("SELECT key, value FROM app_settings WHERE key LIKE 'internal.sync.%'")?
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .collect::<rusqlite::Result<_>>()?;
     for table in TABLES.iter().rev() {
         if table_exists(&tx, table)? {
             tx.execute(&format!("DELETE FROM {table}"), [])?;
@@ -122,6 +136,9 @@ fn replace_all(conn: &Connection, document: &Document) -> Result<()> {
         }
         let known = columns_of(&tx, table)?;
         for row in rows {
+            if *table == "app_settings" && is_sync_account(row.get("key").and_then(Value::as_str)) {
+                continue;
+            }
             if let Some(unknown) = row.keys().find(|name| !known.contains(name)) {
                 return Err(Error::invalid(format!("This backup has an unknown column: {table}.{unknown}")));
             }
@@ -133,6 +150,9 @@ fn replace_all(conn: &Connection, document: &Document) -> Result<()> {
                 Error::invalid(format!("This backup has an invalid row in {table}: {error}"))
             })?;
         }
+    }
+    for (key, value) in sync_account {
+        tx.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?1, ?2)", [key, value])?;
     }
     tx.commit()
         .map_err(|_| Error::invalid("This backup is inconsistent: some records point at missing ones"))?;
@@ -210,20 +230,36 @@ pub fn export_json(conn: &Connection, clock: &dyn Clock, path: &Path) -> Result<
 
 /// A full backup: a consistent copy of the database, including uncommitted write-ahead log contents.
 pub fn export_database(conn: &Connection, path: &Path) -> Result<()> {
-    let temporary = sibling(path, "tmp");
-    let _ = fs::remove_file(&temporary);
-    if conn.execute("VACUUM INTO ?1", [temporary.to_string_lossy()]).is_ok() {
-        fs::rename(&temporary, path)?;
-        return Ok(());
-    }
-    // A file chosen through a desktop portal can be written, but nothing can be created beside it.
-    let _ = fs::remove_file(&temporary);
+    // The copy is made privately first, so the sync sign-in can be removed before anyone sees it.
     let staged = staging_path("export");
     let _ = fs::remove_file(&staged);
     conn.execute("VACUUM INTO ?1", [staged.to_string_lossy()])?;
-    let copied = fs::copy(&staged, path);
+    let scrubbed = scrub_sync_account(&staged);
+    let result = scrubbed.and_then(|()| {
+        let temporary = sibling(path, "tmp");
+        let _ = fs::remove_file(&temporary);
+        if fs::copy(&staged, &temporary).is_ok() && fs::rename(&temporary, path).is_ok() {
+            return Ok(());
+        }
+        // A file chosen through a desktop portal can be written, but nothing can be created beside it.
+        let _ = fs::remove_file(&temporary);
+        fs::copy(&staged, path).map(|_| ()).map_err(Error::from)
+    });
     let _ = fs::remove_file(&staged);
-    copied?;
+    result
+}
+
+/// Removes the sync sign-in and sync bookkeeping from a database copy, overwriting the freed space.
+fn scrub_sync_account(path: &Path) -> Result<()> {
+    let copy = Connection::open(path)?;
+    copy.pragma_update(None, "secure_delete", true)?;
+    copy.execute("DELETE FROM app_settings WHERE key LIKE 'internal.sync.%'", [])?;
+    for table in ["sync_records", "sync_tombstones"] {
+        if table_exists(&copy, table)? {
+            copy.execute(&format!("DELETE FROM {table}"), [])?;
+        }
+    }
+    copy.execute_batch("VACUUM")?;
     Ok(())
 }
 

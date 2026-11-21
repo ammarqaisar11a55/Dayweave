@@ -2,12 +2,14 @@ import {
   BarChart3,
   CalendarDays,
   CheckCircle2,
+  CloudOff,
   FolderKanban,
   Info,
   LayoutDashboard,
   type LucideIcon,
   PanelLeftClose,
   PanelLeftOpen,
+  RefreshCw,
   Repeat2,
   Settings,
   Timer,
@@ -17,8 +19,11 @@ import { formatClock } from "../../lib/date";
 import { useCountdown } from "../../lib/focus";
 import { navigate, type Page, useRoute } from "../../lib/router";
 import { setSetting, useSettings } from "../../lib/settings";
-import { useRpc } from "../../lib/store";
-import type { AppInfo, Badges } from "../../lib/types";
+import { useState } from "react";
+
+import { mutate, useRpc } from "../../lib/store";
+import { syncSummary } from "../../lib/sync";
+import type { AppInfo, Badges, SyncStatus } from "../../lib/types";
 import { Tooltip } from "../ui/Tooltip";
 
 interface Item {
@@ -58,6 +63,46 @@ function NavLink({ item, collapsed, trailing }: { item: Item; collapsed: boolean
         {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
         {!collapsed && trailing}
       </a>
+    </Tooltip>
+  );
+}
+
+/** Shown once the person has signed in to sync. Syncs now when pressed; the tooltip says where things stand. */
+function SyncButton({ collapsed }: { collapsed: boolean }) {
+  const { data: status } = useRpc<SyncStatus>("sync.status");
+  const [syncing, setSyncing] = useState(false);
+  if (!status?.signedIn) return null;
+
+  const sync = async () => {
+    setSyncing(true);
+    try {
+      await mutate("sync.run");
+    } catch {
+      // The toast says why. Changes stay on this computer until the next try.
+    }
+    setSyncing(false);
+  };
+  const detail = syncing ? "Syncing…" : (status.lastError ?? syncSummary(status));
+  let trailing: React.ReactNode = null;
+  if (status.lastError && !syncing) {
+    trailing = <CloudOff size={14} aria-hidden className="shrink-0 text-warning" />;
+  } else if (status.pending > 0 && !syncing) {
+    trailing = <span className="tabular text-meta font-medium text-accent-text">{status.pending}</span>;
+  }
+
+  return (
+    <Tooltip text={detail} placement="right">
+      <button
+        type="button"
+        onClick={() => void sync()}
+        disabled={syncing}
+        aria-label={`Sync now. ${detail}`}
+        className="interactive flex h-9 items-center gap-3 overflow-hidden rounded-md px-[11px] text-ink-2 hover:text-ink disabled:pointer-events-none"
+      >
+        <RefreshCw size={18} aria-hidden className={`shrink-0 ${syncing ? "animate-spin" : ""}`} />
+        {!collapsed && <span className="flex-1 truncate text-left text-body">{syncing ? "Syncing…" : "Sync"}</span>}
+        {!collapsed && trailing}
+      </button>
     </Tooltip>
   );
 }
@@ -126,6 +171,7 @@ export function AppSidebar() {
       </div>
 
       <div className="flex flex-col gap-0.5">
+        <SyncButton collapsed={collapsed} />
         {SECONDARY.map((item) => (
           <NavLink key={item.page} item={item} collapsed={collapsed} />
         ))}

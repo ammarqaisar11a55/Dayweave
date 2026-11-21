@@ -14,6 +14,7 @@ import { inTauri, rpc } from "../lib/api";
 import { formatInstant, today } from "../lib/date";
 import { setSetting, useSettings } from "../lib/settings";
 import { act, mutate, showToast, useRpc } from "../lib/store";
+import { syncSummary } from "../lib/sync";
 import type { AppInfo, BackupCounts, BackupPreview, Settings as SettingsData, SyncStatus } from "../lib/types";
 import { showShortcuts } from "../lib/ui";
 
@@ -184,12 +185,6 @@ function DataSection() {
       {pending && <RestoreDialog {...pending} onClose={() => setPending(null)} />}
     </Section>
   );
-}
-
-function syncSummary(status: SyncStatus): string {
-  if (status.pending > 0) return `${status.pending} ${status.pending === 1 ? "change" : "changes"} waiting to sync`;
-  if (status.lastSyncAt) return `Up to date. Last synced ${formatInstant(status.lastSyncAt)}`;
-  return "Not synced yet";
 }
 
 /** The public Dayweave sync server. Anyone running their own can enter its address instead. */

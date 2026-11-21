@@ -8,11 +8,16 @@ use crate::error::{Error, Result};
 /// Marks a file as a Dayweave database, so a restore can reject any other SQLite file.
 pub const APPLICATION_ID: i32 = 0x4457_4156;
 
-pub const MIGRATIONS: &[&str] = &[include_str!("migrations/0001_initial.sql")];
+pub const MIGRATIONS: &[&str] =
+    &[include_str!("migrations/0001_initial.sql"), include_str!("migrations/0002_sync.sql")];
 
 pub const SCHEMA_VERSION: i64 = MIGRATIONS.len() as i64;
 
 /// Every table, parents before children, which is the order a restore must insert them in.
+/// Sync bookkeeping for this device. Deliberately left out of backups: it describes this device's
+/// conversation with a server, not the person's data.
+pub const SYNC_TABLES: &[&str] = &["sync_records", "sync_tombstones", "sync_guard"];
+
 pub const TABLES: &[&str] = &[
     "projects",
     "habits",
@@ -122,9 +127,41 @@ mod tests {
         let mut found: Vec<String> =
             statement.query_map([], |row| row.get(0)).unwrap().map(|name| name.unwrap()).collect();
         found.sort();
-        let mut expected: Vec<&str> = TABLES.to_vec();
+        let mut expected: Vec<&str> = TABLES.iter().chain(SYNC_TABLES).copied().collect();
         expected.sort();
         assert_eq!(found, expected);
+    }
+
+    #[test]
+    fn upgrading_queues_existing_data_for_the_first_sync() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate_to(&conn, 1).unwrap();
+        conn.execute_batch(
+            "INSERT INTO projects (id, name, created_at, updated_at) VALUES (1, 'Home', '2026-11-01T10:00:00Z', '2026-11-01T10:00:00Z');
+             INSERT INTO habits (id, name, start_date, created_at, updated_at) VALUES (1, 'Read', '2026-10-01', '2026-11-01T10:00:00Z', '2026-11-01T10:00:00Z');
+             INSERT INTO habit_completions (habit_id, date, status, created_at, updated_at) VALUES (1, '2026-11-01', 'done', '2026-11-01T10:00:00Z', '2026-11-01T10:00:00Z');
+             INSERT INTO tasks (title, project_id, created_at, updated_at) VALUES ('Fix the heater', 1, '2026-11-01T10:00:00Z', '2026-11-01T10:00:00Z');
+             INSERT INTO app_settings (key, value) VALUES ('theme', '\"dark\"'), ('internal.lastTick', '\"x\"');",
+        )
+        .unwrap();
+        migrate(&conn).unwrap();
+        let count = |entity: &str| -> i64 {
+            conn.query_row(
+                "SELECT count(*) FROM sync_records WHERE entity = ?1 AND dirty = 1",
+                [entity],
+                |row| row.get(0),
+            )
+            .unwrap()
+        };
+        assert_eq!((count("project"), count("habit"), count("completion"), count("task")), (1, 1, 1, 1));
+        assert_eq!(count("setting"), 1, "internal state isn't synced");
+        let habit: String = conn
+            .query_row("SELECT sync_id FROM sync_records WHERE entity = 'habit'", [], |row| row.get(0))
+            .unwrap();
+        let completion: String = conn
+            .query_row("SELECT sync_id FROM sync_records WHERE entity = 'completion'", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(completion, format!("{habit}:2026-11-01"));
     }
 
     #[test]

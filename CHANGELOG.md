@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Optional sync with a Dayweave server, in Settings → Sync. Everything keeps working offline, and
+  changes sync when the computer is back online. The later change to the same item wins
+- Create a sync account, sign in, sign out, and delete the account from the server
+
+### Changed
+
+- The snap can now reach the network, which only sync uses
+- Backups and database copies never contain the sync sign-in
+
 ## 0.1.0
 
 The first version.

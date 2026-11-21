@@ -14,7 +14,8 @@ To install a `.snap` file you built or downloaded from a release:
 sudo snap install ./dayweave_0.1.0_amd64.snap --dangerous
 ```
 
-Strict confinement means the snap can't reach the network, and can't read your home folder.
+Strict confinement means the snap can't read your home folder. It can reach the network, which only
+sync uses, and only once you sign in to a server.
 Backups and exports go wherever you choose in the file dialog, and only that file is shared with
 Dayweave.
 

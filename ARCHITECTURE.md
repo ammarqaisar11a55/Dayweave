@@ -109,9 +109,10 @@ in the background. A separate daemon was rejected: snap services run as root unl
 used, a second process would need its own access to the database, and it would add a failure mode to
 solve something autostart already solves.
 
-### The snap has neither `network` nor `home`
+### The snap has `network` only for sync, and no `home`
 
-Dayweave needs neither. The GNOME extension sets `GTK_USE_PORTAL=1`, so the file dialog runs outside
+`network` is there for optional sync, which reaches only the server the person chose. Dayweave
+doesn't need `home`: the GNOME extension sets `GTK_USE_PORTAL=1`, so the file dialog runs outside
 the sandbox and grants access to only the file you choose. A portal grant covers that one file, so
 nothing can be created beside it. Exports fall back to writing it directly, and a database backup
 is read from a private copy because SQLite may need side files.
@@ -162,6 +163,30 @@ JSON is the portable format. A full backup is a consistent SQLite snapshot from 
 restoring one goes through the same steps. A copy of the database is also taken before any migration,
 and a database from a newer version of Dayweave is refused rather than opened.
 
+### Sync: an outbox kept by triggers, newest change wins
+
+Each device keeps its full database and works offline; sync only exchanges changes. Data travels as
+records with IDs shared by every device: a task with its subtasks, reminders and tags; a habit with
+its schedule and checklist; a check-in; a project; a repeat rule; a finished focus session; a
+preference.
+
+Triggers (migration 0002) mark a record dirty with the time it changed whenever any of its rows
+change, and keep a tombstone when one is deleted, so no feature has to remember to. Tracking runs
+whether or not sync is on, so turning it on later sends everything. While changes from the server
+are written, a guard row stops the triggers from queueing them to be sent back.
+
+A sync sends dirty records and receives everything the server has after the device's cursor, in one
+request, in rounds of a few hundred. When two devices changed the same record, the change made later
+wins, both on the server and on the device. A check-in's ID is its habit's ID and its date, so the
+same habit logged on two devices for the same day becomes one record rather than a conflict. Running
+focus sessions and snoozed reminders belong to the device and stay put.
+
+The network round trip happens without holding the database lock, so the interface stays responsive
+on a slow connection. The shell's sync thread sends changes within seconds and fetches every few
+minutes, and backs off while the server can't be reached. The device's token lives in internal
+settings, which backups and database copies leave out. See
+[Dayweave-Server](https://github.com/ammarqaisar11a55/Dayweave-Server) for the other side.
+
 ### Interface data flow
 
 There is no client state library. `useRpc` reads data, and every successful write increments a global
@@ -181,8 +206,9 @@ Kept to what earns its place. On the Rust side: `tauri`, `rusqlite`, `chrono`, `
 and `tauri-plugin-dialog`. On the web side: `react`, `lucide-react`, `recharts`, Tailwind and a bundled
 copy of Inter. There is no router, date library, component kit or state library.
 
-The application makes no network requests. The content security policy allows only the Tauri IPC
-channel, and the snap does not declare the `network` plug.
+The interface makes no network requests: the content security policy allows only the Tauri IPC
+channel. The core makes requests only for sync, through `ureq` with rustls and built-in root
+certificates, and only once the person has signed in to a server.
 
 ## Data model
 

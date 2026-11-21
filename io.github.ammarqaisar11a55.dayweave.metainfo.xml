@@ -8,8 +8,11 @@
   <description>
     <p>
       Dayweave brings tasks, deadlines, habits, a calendar, focus sessions and analytics together in
-      one application. All data stays on your computer, with no account, no cloud service and no
-      telemetry.
+      one application. Everything works on your computer, with no account needed and no telemetry.
+    </p>
+    <p>
+      Optional sync keeps your data in step with Dayweave on your phone and other computers, through a
+      Dayweave server you choose. Changes made offline sync when you are back online.
     </p>
   </description>
   <launchable type="desktop-id">Dayweave.desktop</launchable>

@@ -83,6 +83,13 @@ as a table.
 | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/projects-dark.png"><source media="(prefers-color-scheme: light)" srcset="docs/screenshots/projects-light.png"><img alt="Project cards with progress" src="docs/screenshots/projects-dark.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-dark.png"><source media="(prefers-color-scheme: light)" srcset="docs/screenshots/settings-light.png"><img alt="Settings" src="docs/screenshots/settings-dark.png"></picture> |
 | **Projects.** Group tasks and follow their progress | **Settings.** Light, dark and system themes, notifications and backups |
 
+## Sync, when you want it
+
+Dayweave works fully on your computer, and always will. To have the same tasks and habits on your
+phone and other computers, sign in to a [Dayweave server](https://github.com/ammarqaisar11a55/Dayweave-Server)
+in **Settings → Sync**. Everything keeps working offline: changes wait on your computer and sync
+the next time it's online. When the same thing was changed on two devices, the later change wins.
+
 ## Reminders
 
 Dayweave delivers reminders as desktop notifications, with buttons to complete or snooze a task
@@ -95,9 +102,9 @@ Settings.
 
 ## Privacy
 
-Dayweave has no account, no cloud service, no telemetry and no advertising. It makes no network
-requests, and the snap doesn't even have permission to. Your data is one SQLite file on your
-computer. See [PRIVACY.md](PRIVACY.md).
+Dayweave needs no account and has no telemetry or advertising. Unless you turn on sync, it makes no
+network requests at all. With sync on, it talks only to the server you chose. Your data is one
+SQLite file on your computer. See [PRIVACY.md](PRIVACY.md).
 
 ## Install
 
